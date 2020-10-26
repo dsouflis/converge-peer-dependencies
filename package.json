@@ -1,0 +1,29 @@
+{
+  "name": "converge-peer-dependencies",
+  "version": "1.0.0",
+  "description": "Converge peer dependencies in package.json",
+  "main": "build/index.js",
+  "module": "build/index.js",
+  "files": [
+    "build"
+  ],
+  "scripts": {
+    "build": "rm -rf build && mkdir build && cp src/*.js build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dsouflis/converge-peer-dependencies.git"
+  },
+  "author": "dsouflis",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dsouflis/converge-peer-dependencies/issues"
+  },
+  "homepage": "https://github.com/dsouflis/converge-peer-dependencies#readme",
+  "dependencies": {
+    "semver-intersect": "^1.4.0",
+    "lodash.groupby": "^4.6.0",
+    "lodash.uniq": "^4.5.0"
+  }
+}

@@ -47,7 +47,31 @@ const converge = dir => new Promise((resolve, reject) => {
           if (errors.length) {
             reject(errors);
           } else {
-            resolve(peersResolved);
+            const depChanged = {};
+            const depAdded = {};
+            peersResolved.forEach(([n, v]) => {
+              const version = packageJsonContents.dependencies[n];
+              if(version) {
+                if(version !== v) {
+                  packageJsonContents.dependencies[n] = v;
+                  depChanged[n] = v;
+                }
+              } else {
+                packageJsonContents.dependencies[n] = v;
+                depAdded[n] = v;
+              }
+            });
+            const newContents = JSON.stringify(packageJsonContents, null, 2);
+            try {
+              fs.writeFile(`${dir}/package-new.json`, newContents, () => {
+                resolve({
+                  depChanged,
+                  depAdded
+                });
+              });
+            } catch (e) {
+              reject(e);
+            }
           }
         });
       } catch (e) {
@@ -57,11 +81,8 @@ const converge = dir => new Promise((resolve, reject) => {
   });
 });
 
+module.exports = {
+  converge
+};
 
-converge('./dummyapp').then(ret => {
-  console.log(JSON.stringify(ret, null, 2));
-})
-.catch(e => {
-  console.log(JSON.stringify(e));
-});
 

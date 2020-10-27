@@ -31,3 +31,10 @@ converge('./dir/to/app').then(ret => {
   console.log(JSON.stringify(e));
 });
 ```
+
+An optional `options` object can be provided as second argument, with
+the following structure.
+
+| option  | default | description | example |
+| ------  | ------- | ----------- | ------- |
+| matcher | null    | boolean predicate on the package name | `n => !n.startsWith('react')` |

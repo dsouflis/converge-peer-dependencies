@@ -11,7 +11,7 @@ const intersectOrFail = (...args) => {
   }
 }
 
-const converge = dir => new Promise((resolve, reject) => {
+const converge = (dir, options = { matcher: null}) => new Promise((resolve, reject) => {
   fs.readFile(`${dir}/package.json`, 'utf8', (err, data)=> {
     if(err) resolve(err);
     else {
@@ -28,7 +28,8 @@ const converge = dir => new Promise((resolve, reject) => {
       }));
       try {
         Promise.all(promises).then(res => {
-          const peers = res
+          const items = options.matcher ? res.filter(x => options.matcher(x.name)) : res;
+          const peers = items
           .filter(x => x.peerDependencies)
           .flatMap(x =>
               Object

@@ -36,6 +36,7 @@ const converge = dir => new Promise((resolve, reject) => {
           const peersGrouped = Object
           .entries(groupBy(peers, ([n, _]) => n))
           .map(([n, ar]) => [n, ar.map(([_, x]) => x)])
+          .map(([n, ar]) => [n, ar.filter(x => x !== "*")])
           .map(([n, ar]) => [n, packageJsonContents.dependencies[n] ? [packageJsonContents.dependencies[n], ...ar] : ar])
           .map(([n, ar]) => [
               n,

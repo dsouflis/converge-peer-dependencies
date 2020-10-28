@@ -3,12 +3,26 @@ const { intersect } = require('semver-intersect');
 var groupBy = require('lodash.groupby');
 var uniq = require('lodash.uniq');
 
-const intersectOrFail = (...args) => {
+const intersectOrFail = (all, versions) => {
   try {
-    return intersect.apply(null, args);
+    return [ intersect.apply(null, versions) ];
   } catch (e) {
-    return `ERR: ${e}`;
+    return [`ERR: ${e}`, all];
   }
+}
+
+function resolvePeerEntries(peerEntries, dependencies) {
+  const allPeers = Object.fromEntries(peerEntries);
+  const peersGrouped = peerEntries
+  .map(([n, ar]) => [n, ar.filter(x => x !== "*")])
+  .map(([n, ar]) => [n, dependencies[n] ? [dependencies[n], ...ar] : ar])
+  .map(([n, ar]) => [
+    n,
+    uniq(ar)
+  ]);
+  const peersResolved = peersGrouped
+  .map(([n, ar]) => [n, ...intersectOrFail(allPeers[n], ar)]);
+  return peersResolved;
 }
 
 const converge = (dir, options = { matcher: null}) => new Promise((resolve, reject) => {
@@ -34,17 +48,10 @@ const converge = (dir, options = { matcher: null}) => new Promise((resolve, reje
           .flatMap(x =>
               Object
               .entries(x.peerDependencies));
-          const peersGrouped = Object
+          const peerEntries = Object
           .entries(groupBy(peers, ([n, _]) => n))
-          .map(([n, ar]) => [n, ar.map(([_, x]) => x)])
-          .map(([n, ar]) => [n, ar.filter(x => x !== "*")])
-          .map(([n, ar]) => [n, packageJsonContents.dependencies[n] ? [packageJsonContents.dependencies[n], ...ar] : ar])
-          .map(([n, ar]) => [
-              n,
-            uniq(ar)
-          ]);
-          const peersResolved = peersGrouped
-          .map(([n, ar]) => [n, intersectOrFail.apply(null, ar)])
+          .map(([n, ar]) => [n, ar.map(([_, x]) => x)]);
+          const peersResolved = resolvePeerEntries(peerEntries, packageJsonContents.dependencies);
           const errors = peersResolved.filter(([n, v]) => v.startsWith('ERR'));
           if (errors.length) {
             reject(errors);
@@ -84,7 +91,8 @@ const converge = (dir, options = { matcher: null}) => new Promise((resolve, reje
 });
 
 module.exports = {
-  converge
+  converge,
+  resolvePeerEntries
 };
 
 

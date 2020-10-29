@@ -13,7 +13,9 @@ const intersectOrFail = (all, versions) => {
 
 function resolvePeerEntries(peerEntries, dependencies) {
   const allPeers = Object.fromEntries(peerEntries);
-  const peersGrouped = peerEntries
+  const peerEntriesJustVersions = peerEntries
+  .map(([n,ar]) => [n, ar.map(([_,v]) => v)]);
+  const peersGrouped = peerEntriesJustVersions
   .map(([n, ar]) => [n, ar.filter(x => x !== "*")])
   .map(([n, ar]) => [n, dependencies[n] ? [dependencies[n], ...ar] : ar])
   .map(([n, ar]) => [
@@ -47,7 +49,9 @@ const converge = (dir, options = { matcher: null}) => new Promise((resolve, reje
           .filter(x => x.peerDependencies)
           .flatMap(x =>
               Object
-              .entries(x.peerDependencies));
+              .entries(x.peerDependencies)
+              .map(([n,v]) => [n, [x.name,v]])
+          );
           const peerEntries = Object
           .entries(groupBy(peers, ([n, _]) => n))
           .map(([n, ar]) => [n, ar.map(([_, x]) => x)]);
@@ -72,7 +76,7 @@ const converge = (dir, options = { matcher: null}) => new Promise((resolve, reje
             });
             const newContents = JSON.stringify(packageJsonContents, null, 2);
             try {
-              fs.writeFile(`${dir}/package-new.json`, newContents, () => {
+              fs.writeFile(`${dir}/package.json`, newContents, () => {
                 resolve({
                   depChanged,
                   depAdded

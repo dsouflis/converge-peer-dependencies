@@ -22,9 +22,22 @@ function resolvePeerEntries(peerEntries, dependencies) {
     n,
     uniq(ar)
   ]);
-  const peersResolved = peersGrouped
+  return peersGrouped
   .map(([n, ar]) => [n, ...intersectOrFail(allPeers[n], ar)]);
-  return peersResolved;
+}
+
+function resolvePeerItems(items, dependencies) {
+  const peers = items
+  .filter(x => x.peerDependencies)
+  .flatMap(x =>
+      Object
+      .entries(x.peerDependencies)
+      .map(([n, v]) => [n, [x.name, v]])
+  );
+  const peerEntries = Object
+  .entries(groupBy(peers, ([n, _]) => n))
+  .map(([n, ar]) => [n, ar.map(([_, x]) => x)]);
+  return resolvePeerEntries(peerEntries, dependencies);
 }
 
 const converge = (dir, options = { matcher: null}) => new Promise((resolve, reject) => {
@@ -32,7 +45,8 @@ const converge = (dir, options = { matcher: null}) => new Promise((resolve, reje
     if(err) resolve(err);
     else {
       let packageJsonContents = JSON.parse(data);
-      const promises = Object.entries(packageJsonContents.dependencies).map(([name, version]) => new Promise((resolveInner, rejectInner) => {
+      const dependencies = packageJsonContents.dependencies;
+      const promises = Object.entries(dependencies).map(([name, version]) => new Promise((resolveInner, rejectInner) => {
         fs.readFile(`${dir}/node_modules/${name}/package.json`, "utf8", function (err, packageData) {
           if (err) {
             resolveInner(err);
@@ -45,17 +59,7 @@ const converge = (dir, options = { matcher: null}) => new Promise((resolve, reje
       try {
         Promise.all(promises).then(res => {
           const items = options.matcher ? res.filter(x => options.matcher(x.name)) : res;
-          const peers = items
-          .filter(x => x.peerDependencies)
-          .flatMap(x =>
-              Object
-              .entries(x.peerDependencies)
-              .map(([n,v]) => [n, [x.name,v]])
-          );
-          const peerEntries = Object
-          .entries(groupBy(peers, ([n, _]) => n))
-          .map(([n, ar]) => [n, ar.map(([_, x]) => x)]);
-          const peersResolved = resolvePeerEntries(peerEntries, packageJsonContents.dependencies);
+          const peersResolved = resolvePeerItems(items, dependencies);
           const errors = peersResolved.filter(([n, v]) => v.startsWith('ERR'));
           if (errors.length) {
             reject(errors);
@@ -63,14 +67,14 @@ const converge = (dir, options = { matcher: null}) => new Promise((resolve, reje
             const depChanged = {};
             const depAdded = {};
             peersResolved.forEach(([n, v]) => {
-              const version = packageJsonContents.dependencies[n];
+              const version = dependencies[n];
               if(version) {
                 if(version !== v) {
-                  packageJsonContents.dependencies[n] = v;
+                  dependencies[n] = v;
                   depChanged[n] = v;
                 }
               } else {
-                packageJsonContents.dependencies[n] = v;
+                dependencies[n] = v;
                 depAdded[n] = v;
               }
             });
@@ -96,7 +100,7 @@ const converge = (dir, options = { matcher: null}) => new Promise((resolve, reje
 
 module.exports = {
   converge,
-  resolvePeerEntries
+  resolvePeerItems,
 };
 
 
